@@ -169,16 +169,12 @@ app.delete('/movies/:id', [authenticateToken, authorizeRole('admin')], async (re
 });
 
 
+
 // === DIRECTOR ROUTES ===
 
 app.get('/directors', async (req, res, next) => {
-  const sql = `
-     SELECT d.director_id, d.name, d.birth_year
-    FROM directors d
-    ORDER BY d.director_id ASC
-  `;
   try {
-    const result = await db.query(sql);
+    const result = await db.query('SELECT * FROM directors ORDER BY id');
     res.json(result.rows);
   } catch (err) {
     next(err);
@@ -186,63 +182,53 @@ app.get('/directors', async (req, res, next) => {
 });
 
 app.get('/directors/:id', async (req, res, next) => {
-  const sql = `
-    SELECT d.director_id, d.name, d.birth_year
-    FROM directors d
-    WHERE d.director_id = $1
-  `;
   try {
-    const result = await db.query(sql, [req.params.id]);
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Director tidak ditemukan' });
-    }
+    const result = await db.query('SELECT * FROM directors WHERE id = $1', [req.params.id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Director tidak ditemukan' });
     res.json(result.rows[0]);
   } catch (err) {
     next(err);
   }
 });
 
-app.post('/movies', authenticateToken, async (req, res, next) => {
-  const { title, director_id, year } = req.body;
-  if (!title || !director_id || !year) {
-    return res.status(400).json({ error: 'title, director_id, year wajib diisi' });
-  }
-  const sql = 'INSERT INTO movies (title, director_id, year) VALUES ($1, $2, $3) RETURNING *';
+app.post('/directors', authenticateToken, async (req, res, next) => {
+  const { name, birth_year } = req.body;
+  if (!name) return res.status(400).json({ error: 'name wajib diisi' });
+
   try {
-    const result = await db.query(sql, [title, director_id, year]);
+    const result = await db.query(
+      'INSERT INTO directors (name, birth_year) VALUES ($1, $2) RETURNING *',
+      [name, birth_year || null]
+    );
     res.status(201).json(result.rows[0]);
   } catch (err) {
     next(err);
   }
 });
 
-app.put('/movies/:id', [authenticateToken, authorizeRole('admin')], async (req, res, next) => {
-  const { title, director_id, year } = req.body;
-  const sql = 'UPDATE movies SET title = $1, director_id = $2, year = $3 WHERE id = $4 RETURNING *';
+app.put('/directors/:id', [authenticateToken, authorizeRole('admin')], async (req, res, next) => {
+  const { name, birth_year } = req.body;
   try {
-    const result = await db.query(sql, [title, director_id, year, req.params.id]);
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Film tidak ditemukan' });
-    }
+    const result = await db.query(
+      'UPDATE directors SET name = $1, birth_year = $2 WHERE id = $3 RETURNING *',
+      [name, birth_year || null, req.params.id]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Director tidak ditemukan' });
     res.json(result.rows[0]);
   } catch (err) {
     next(err);
   }
 });
 
-app.delete('/movies/:id', [authenticateToken, authorizeRole('admin')], async (req, res, next) => {
-  const sql = 'DELETE FROM movies WHERE id = $1 RETURNING *';
+app.delete('/directors/:id', [authenticateToken, authorizeRole('admin')], async (req, res, next) => {
   try {
-    const result = await db.query(sql, [req.params.id]);
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Film tidak ditemukan' });
-    }
+    const result = await db.query('DELETE FROM directors WHERE id = $1 RETURNING *', [req.params.id]);
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Director tidak ditemukan' });
     res.status(204).send();
   } catch (err) {
     next(err);
   }
 });
-
 
 // === FALLBACK & ERROR HANDLING ===
 app.use((req, res) => {
