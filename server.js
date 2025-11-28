@@ -167,14 +167,13 @@ app.delete('/movies/:id', [authenticateToken, authorizeRole('admin')], async (re
   }
 });
 
-// === DIRECTOR ROUTES ===
 
 // === DIRECTOR ROUTES ===
 
 // GET all directors
 app.get('/directors', async (req, res, next) => {
   const sql = `
-    SELECT id, name, birthYear
+    SELECT id, name, birth_year AS "birthYear"
     FROM directors
     ORDER BY id ASC
   `;
@@ -189,7 +188,7 @@ app.get('/directors', async (req, res, next) => {
 // GET director by ID
 app.get('/directors/:id', async (req, res, next) => {
   const sql = `
-    SELECT id, name, birthYear
+    SELECT id, name, birth_year AS "birthYear"
     FROM directors
     WHERE id = $1
   `;
@@ -207,11 +206,16 @@ app.get('/directors/:id', async (req, res, next) => {
 // POST create new director
 app.post('/directors', authenticateToken, async (req, res, next) => {
   const { name, birthYear } = req.body;
+
   if (!name || !birthYear) {
-    return res.status(400).json({ error: 'name, birthYear wajib diisi' });
+    return res.status(400).json({ error: 'name dan birthYear wajib diisi' });
   }
 
-  const sql = 'INSERT INTO directors (name, birthYear) VALUES ($1, $2) RETURNING *';
+  const sql = `
+    INSERT INTO directors (name, birth_year)
+    VALUES ($1, $2)
+    RETURNING id, name, birth_year AS "birthYear"
+  `;
 
   try {
     const result = await db.query(sql, [name, birthYear]);
@@ -224,7 +228,13 @@ app.post('/directors', authenticateToken, async (req, res, next) => {
 // PUT update director
 app.put('/directors/:id', [authenticateToken, authorizeRole('admin')], async (req, res, next) => {
   const { name, birthYear } = req.body;
-  const sql = 'UPDATE directors SET name = $1, birthYear = $2 WHERE id = $3 RETURNING *';
+
+  const sql = `
+    UPDATE directors
+    SET name = $1, birth_year = $2
+    WHERE id = $3
+    RETURNING id, name, birth_year AS "birthYear"
+  `;
 
   try {
     const result = await db.query(sql, [name, birthYear, req.params.id]);
@@ -251,6 +261,7 @@ app.delete('/directors/:id', [authenticateToken, authorizeRole('admin')], async 
     next(err);
   }
 });
+
 
 
 // === FALLBACK & ERROR HANDLING ===
