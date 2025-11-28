@@ -195,7 +195,7 @@ app.post('/directors', authenticateToken, async (req, res, next) => {
   console.log('req post /directors oleh user:', req.user.username);
   const { name, birthYear } = req.body;
   if (!name || !birthYear) {
-    return res.status(400).json({ message: 'name wajib diisi' });
+    return res.status(400).json({ message: 'name dan BirthYear wajib diisi' });
   }
 
   const sql = 'INSERT INTO directors (name, "birthYear") VALUES ($1, $2) RETURNING *'; 
@@ -212,7 +212,7 @@ app.put('/directors/:id', [authenticateToken, authorizeRole('admin')], async (re
   const { name, birthYear } = req.body;
   try {
     const result = await db.query(
-      'UPDATE directors SET name = $1, birthYear = $2 WHERE id = $3 RETURNING *',
+      'UPDATE directors SET name = $1, "birthYear" = $2 WHERE id = $3 RETURNING *',
       [name, birthYear || null, req.params.id]
     );
     if (result.rowCount === 0) return res.status(404).json({ error: 'Director tidak ditemukan' });
